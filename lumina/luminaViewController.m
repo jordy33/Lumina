@@ -9,7 +9,7 @@
 #import "luminaViewController.h"
 static NSString * const kServiceUUID =
 @"03031000-0303-0303-0303-030303030303";
-static NSString * const kCharacteristicUUID = @"03032002-0303-0303-0303-030303030303";
+static NSString * const kCharacteristicUUID = @"03032003-0303-0303-0303-030303030303";
 @interface luminaViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *conectar;
 @property (weak, nonatomic) IBOutlet UITextView *console;
@@ -68,7 +68,7 @@ static NSString * const kCharacteristicUUID = @"03032002-0303-0303-0303-03030303
     NSData *paso=[NSData dataWithBytes:&data length:1];
     for ( CBService *service in self.peripheral.services ) {
         for ( CBCharacteristic *characteristic in service.characteristics ) {
-            if (![characteristic.UUID isEqual:[CBUUID UUIDWithString:kCharacteristicUUID]])
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:kCharacteristicUUID]])
             {
                 /* EVERYTHING IS FOUND, WRITE characteristic ! */
                 NSLog(@"Encontre Caracteristica de servicio: %@",characteristic);
