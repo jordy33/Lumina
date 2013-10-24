@@ -20,4 +20,8 @@ CBCharacteristic *characteristic;
 @property(retain, readonly) NSString *name;
 @property(readonly) BOOL isConnected;
 @property(retain, readonly) NSNumber *RSSI;
+
 @end
+
+
+

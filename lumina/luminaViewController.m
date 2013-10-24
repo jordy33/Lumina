@@ -10,11 +10,13 @@
 static NSString * const kServiceUUID =
 @"03031000-0303-0303-0303-030303030303";
 static NSString * const kCharacteristicUUID = @"03032003-0303-0303-0303-030303030303";
+static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303";
 @interface luminaViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *conectar;
 @property (weak, nonatomic) IBOutlet UITextView *console;
 @property BOOL buttonState;
 @property (weak, nonatomic) IBOutlet UILabel *valorRSSI;
+@property (weak, nonatomic) IBOutlet UILabel *valorTemperatura;
 @end
 
 @implementation luminaViewController
@@ -49,13 +51,22 @@ static NSString * const kCharacteristicUUID = @"03032003-0303-0303-0303-03030303
             break;
     }
 }
-- (IBAction)readRSSIButton:(UIButton *)sender {
-    NSString *rssiValue;
-    
+
+- (IBAction)readTemperature:(UIButton *)sender {
+
     if (self.peripheral.isConnected) {
-        [self.peripheral readRSSI];
-        rssiValue=[NSString stringWithFormat:@"%d",self.peripheral.RSSI.intValue];
-        self.valorRSSI.text=rssiValue;
+
+        for ( CBService *service in self.peripheral.services ) {
+            for ( CBCharacteristic *characteristic in service.characteristics ) {
+                NSLog(@"Caracteristica: %@",characteristic.UUID);
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+                {
+                    /* Activate Notification ! */
+                    [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                }
+            }
+        }
+        
     }
 }
 
@@ -141,40 +152,122 @@ static NSString * const kCharacteristicUUID = @"03032003-0303-0303-0303-03030303
 -(void) centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral     *)peripheral error:(NSError *)error{
     [self.conectar setTitle:@"Conectar" forState:UIControlStateNormal];
     self.peripheral=nil;
-    [self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,@"Desconectado..."]];
+    //[self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,@"Desconectado..."]];
+    [self.console setText:@""];
 }
 
 
-- (void)peripheral:(CBPeripheral *)aPeripheral didDiscoverServices:(NSError *)error {
-    NSString *serviceName;
-    if (error) {
-        [self.conectar setTitle:@"Error al descubrir servicios" forState:UIControlStateNormal];
-        return;
-    }
-    for (CBService *service in aPeripheral.services) {
-        serviceName=[NSString stringWithFormat:@"%@:%@",@"Servicio encontrado",service.UUID];
-        [self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,serviceName]];
-        
-        // Discovers the characteristics for a given service
-        if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]]) {
-            [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:kCharacteristicUUID]] forService:service];
+ - (void)peripheral:(CBPeripheral *)aPeripheral didDiscoverServices:(NSError *)error {
+        if (error) {
+            NSLog(@"Error discovering service: %@", [error localizedDescription]);
+              return;
+        }
+        for (CBService *service in aPeripheral.services) {
+            NSLog(@"Service found with UUID: %@", service.UUID);
+            // Discovers the characteristics for a given service
+            if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]]) {
+                [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:kCharacteristicUUID]] forService:service];
+                [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:temperatureUUID]] forService:service];
+            }
         }
     }
-}
-/*
+
+
+
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error {
     if (error) {
         NSLog(@"Error discovering characteristic: %@", [error localizedDescription]);
         //[self cleanup];
         return;
     }
-    if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]]) {
+        if ([service.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
         for (CBCharacteristic *characteristic in service.characteristics) {
-            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:kCharacteristicUUID]]) {
-                [peripheral setNotifyValue:YES forCharacteristic:characteristic];
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
+                NSLog(@"Discover characteristics for temperature");
+                //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                [peripheral readValueForCharacteristic:characteristic];
             }
         }
     }
 }
-*/
+
+
+- (void) peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
+    NSString *rssiValue;
+    [self.peripheral readRSSI];
+    rssiValue=[NSString stringWithFormat:@"%d",self.peripheral.RSSI.intValue];
+    self.valorRSSI.text=rssiValue;
+    
+    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
+        [self.peripheral readValueForCharacteristic:characteristic];
+        NSData *data = characteristic.value;
+        NSLog(@"UPDATED DATA:%@", data);
+        if(data!=nil)
+        {
+        const unsigned *tokenBytes = [data bytes];
+
+        NSString *hexToken = [NSString stringWithFormat:@"%08x",
+                                  ntohl(tokenBytes[0])];
+
+        NSString *t1 = [hexToken substringWithRange:NSMakeRange(0,2)];
+        NSString *t2 = [hexToken substringWithRange:NSMakeRange(2,2)];
+        NSString *t3 = [hexToken substringWithRange:NSMakeRange(4,2)];
+        NSString *t4 = [hexToken substringWithRange:NSMakeRange(6,2)];
+           
+        unsigned int outVal;
+        NSScanner* scanner = [NSScanner scannerWithString:t1];
+        [scanner scanHexInt:&outVal];
+        unsigned char b0 = outVal;
+        //NSLog(@"Dec t1:%d",b0);
+        scanner = [NSScanner scannerWithString:t2];
+        [scanner scanHexInt:&outVal];
+        unsigned char b1 = outVal;
+        //NSLog(@"Dec t2:%d",b1);
+        scanner = [NSScanner scannerWithString:t3];
+        [scanner scanHexInt:&outVal];
+         unsigned char b2 = outVal;
+        //NSLog(@"Dec t3:%d",b2);
+        scanner = [NSScanner scannerWithString:t4];
+        [scanner scanHexInt:&outVal];
+        unsigned char b3 = outVal;
+
+            unsigned long d;
+            unsigned int index;
+            index=0;
+            
+            d =  (b0 << 24) | (b1 << 16)| (b2 << 8) | (b3);
+            
+            float member = *(float *)&d;
+            NSLog(@"Temperatura: %f",member);
+
+         self.valorTemperatura.text=[[NSString alloc] initWithFormat:@"%f",member];
+     }
+    }
+
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
+    if (error) {
+        NSLog(@"Error changing notification state: %@", error.localizedDescription);
+    }
+    
+    // Exits if it's not the transfer characteristic
+    if (![characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
+        return;
+    }
+   
+    // Notification has started
+    if (characteristic.isNotifying) {
+        NSLog(@"Notification began on %@", characteristic);
+        [peripheral readValueForCharacteristic:characteristic];
+        NSData *data = characteristic.value;
+        NSLog(@"DATOS LUEGO DE NOTIFICACION:%@", data);
+    } else { // Notification has stopped
+        // so disconnect from the peripheral
+        NSLog(@"Notification stopped on %@.  Disconnecting", characteristic);
+        [self.manager cancelPeripheralConnection:self.peripheral];
+    }
+}
+
+
 @end
