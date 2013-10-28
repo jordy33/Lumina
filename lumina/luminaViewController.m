@@ -9,14 +9,16 @@
 #import "luminaViewController.h"
 static NSString * const kServiceUUID =
 @"03031000-0303-0303-0303-030303030303";
-static NSString * const kCharacteristicUUID = @"03032003-0303-0303-0303-030303030303";
+static NSString * const ledUUID = @"03032003-0303-0303-0303-030303030303";
 static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303";
+static NSString * const pressureUUID = @"03032004-0303-0303-0303-030303030303";
 @interface luminaViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *conectar;
 @property (weak, nonatomic) IBOutlet UITextView *console;
 @property BOOL buttonState;
 @property (weak, nonatomic) IBOutlet UILabel *valorRSSI;
 @property (weak, nonatomic) IBOutlet UILabel *valorTemperatura;
+@property (weak, nonatomic) IBOutlet UILabel *valorPresion;
 @end
 
 @implementation luminaViewController
@@ -57,9 +59,15 @@ static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303
     if (self.peripheral.isConnected) {
 
         for ( CBService *service in self.peripheral.services ) {
-            for ( CBCharacteristic *characteristic in service.characteristics ) {
+            for ( CBCharacteristic *characteristic in service.characteristics )
+            {
                 NSLog(@"Caracteristica: %@",characteristic.UUID);
             if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+                {
+                    /* Activate Notification ! */
+                    [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                }
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]])
                 {
                     /* Activate Notification ! */
                     [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
@@ -79,7 +87,7 @@ static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303
     NSData *paso=[NSData dataWithBytes:&data length:1];
     for ( CBService *service in self.peripheral.services ) {
         for ( CBCharacteristic *characteristic in service.characteristics ) {
-            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:kCharacteristicUUID]])
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:ledUUID]])
             {
                 /* EVERYTHING IS FOUND, WRITE characteristic ! */
                 NSLog(@"Encontre Caracteristica de servicio: %@",characteristic);
@@ -154,6 +162,9 @@ static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303
     self.peripheral=nil;
     //[self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,@"Desconectado..."]];
     [self.console setText:@""];
+    self.valorRSSI.text=@"0";
+    self.valorTemperatura.text=@"0";
+    self.valorPresion.text=@"0";
 }
 
 
@@ -162,33 +173,56 @@ static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303
             NSLog(@"Error discovering service: %@", [error localizedDescription]);
               return;
         }
-        for (CBService *service in aPeripheral.services) {
+        for (CBService *service in aPeripheral.services)
+        {
             NSLog(@"Service found with UUID: %@", service.UUID);
             // Discovers the characteristics for a given service
-            if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]]) {
-                [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:kCharacteristicUUID]] forService:service];
-                [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:temperatureUUID]] forService:service];
+            if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]])
+            {
+              [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:ledUUID]] forService:service];
+              [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:temperatureUUID]] forService:service];
+              [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:pressureUUID]] forService:service];
             }
         }
     }
 
 
 
-- (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error {
-    if (error) {
+- (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
+{
+    if (error)
+    {
         NSLog(@"Error discovering characteristic: %@", [error localizedDescription]);
         //[self cleanup];
         return;
     }
-        if ([service.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
-        for (CBCharacteristic *characteristic in service.characteristics) {
-            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
+    if ([service.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+     {
+        for (CBCharacteristic *characteristic in service.characteristics)
+          {
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+            {
                 NSLog(@"Discover characteristics for temperature");
                 //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
                 [peripheral readValueForCharacteristic:characteristic];
             }
-        }
+          }
+            
     }
+    if ([service.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]])
+    {
+        for (CBCharacteristic *characteristic in service.characteristics)
+        {
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+            {
+                NSLog(@"Discover characteristics for pressure");
+                //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                [peripheral readValueForCharacteristic:characteristic];
+            }
+        }
+        
+    }
+
 }
 
 
@@ -240,8 +274,54 @@ static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303
             float member = *(float *)&d;
             NSLog(@"Temperatura: %f",member);
 
-         self.valorTemperatura.text=[[NSString alloc] initWithFormat:@"%f",member];
+         self.valorTemperatura.text=[[NSString alloc] initWithFormat:@"%.2f",member];
      }
+    }
+ //pressure reading
+    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]]) {
+        [self.peripheral readValueForCharacteristic:characteristic];
+        NSData *data = characteristic.value;
+        NSLog(@"UPDATED DATA:%@", data);
+        if(data!=nil)
+        {
+            const unsigned *tokenBytes = [data bytes];
+            
+            NSString *hexToken = [NSString stringWithFormat:@"%08x",
+                                  ntohl(tokenBytes[0])];
+            
+            NSString *t1 = [hexToken substringWithRange:NSMakeRange(0,2)];
+            NSString *t2 = [hexToken substringWithRange:NSMakeRange(2,2)];
+            NSString *t3 = [hexToken substringWithRange:NSMakeRange(4,2)];
+            NSString *t4 = [hexToken substringWithRange:NSMakeRange(6,2)];
+            
+            unsigned int outVal;
+            NSScanner* scanner = [NSScanner scannerWithString:t1];
+            [scanner scanHexInt:&outVal];
+            unsigned char b0 = outVal;
+            //NSLog(@"Dec t1:%d",b0);
+            scanner = [NSScanner scannerWithString:t2];
+            [scanner scanHexInt:&outVal];
+            unsigned char b1 = outVal;
+            //NSLog(@"Dec t2:%d",b1);
+            scanner = [NSScanner scannerWithString:t3];
+            [scanner scanHexInt:&outVal];
+            unsigned char b2 = outVal;
+            //NSLog(@"Dec t3:%d",b2);
+            scanner = [NSScanner scannerWithString:t4];
+            [scanner scanHexInt:&outVal];
+            unsigned char b3 = outVal;
+            
+            unsigned long d;
+            unsigned int index;
+            index=0;
+            
+            d =  (b0 << 24) | (b1 << 16)| (b2 << 8) | (b3);
+            
+            float member = *(float *)&d;
+            NSLog(@"Presion: %f",member);
+            
+            self.valorPresion.text=[[NSString alloc] initWithFormat:@"%.2f",member];
+        }
     }
 
 }
