@@ -9,9 +9,9 @@
 #import "luminaViewController.h"
 static NSString * const kServiceUUID =
 @"03031000-0303-0303-0303-030303030303";
-static NSString * const ledUUID = @"03032003-0303-0303-0303-030303030303";
+static NSString * const ledUUID =         @"03032000-0303-0303-0303-030303030303";
 static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303";
-static NSString * const pressureUUID = @"03032004-0303-0303-0303-030303030303";
+static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303";
 @interface luminaViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *conectar;
 @property (weak, nonatomic) IBOutlet UITextView *console;
