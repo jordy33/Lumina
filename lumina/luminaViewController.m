@@ -12,6 +12,7 @@ static NSString * const kServiceUUID =
 static NSString * const ledUUID =         @"03032000-0303-0303-0303-030303030303";
 static NSString * const temperatureUUID = @"03032001-0303-0303-0303-030303030303";
 static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303";
+static NSString * const proximityUUID =   @"03032003-0303-0303-0303-030303030303";
 @interface luminaViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *conectar;
 @property (weak, nonatomic) IBOutlet UITextView *console;
@@ -19,6 +20,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
 @property (weak, nonatomic) IBOutlet UILabel *valorRSSI;
 @property (weak, nonatomic) IBOutlet UILabel *valorTemperatura;
 @property (weak, nonatomic) IBOutlet UILabel *valorPresion;
+@property (weak, nonatomic) IBOutlet UILabel *valorProximidad;
 @end
 
 @implementation luminaViewController
@@ -61,13 +63,18 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
         for ( CBService *service in self.peripheral.services ) {
             for ( CBCharacteristic *characteristic in service.characteristics )
             {
-                NSLog(@"Caracteristica: %@",characteristic.UUID);
+                //NSLog(@"Caracteristica: %@",characteristic.UUID);
             if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
                 {
                     /* Activate Notification ! */
                     [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
                 }
             if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]])
+                {
+                    /* Activate Notification ! */
+                    [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                }
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:proximityUUID]])
                 {
                     /* Activate Notification ! */
                     [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
@@ -90,7 +97,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
             if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:ledUUID]])
             {
                 /* EVERYTHING IS FOUND, WRITE characteristic ! */
-                NSLog(@"Encontre Caracteristica de servicio: %@",characteristic);
+                //NSLog(@"Encontre Caracteristica de servicio: %@",characteristic);
                 [self.peripheral writeValue:paso forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
             }
         }
@@ -139,7 +146,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
     // Connects to the discovered peripheral
     if (self.peripheral != peripheral) {
         self.peripheral = peripheral;
-        NSLog(@"Did discover peripheral. peripheral: %@ rssi: %@, UUID: %@ advertisementData: %@ ", peripheral, RSSI, peripheral.UUID, advertisementData);
+        //NSLog(@"Did discover peripheral. peripheral: %@ rssi: %@, UUID: %@ advertisementData: %@ ", peripheral, RSSI, peripheral.UUID, advertisementData);
         [self.manager connectPeripheral:peripheral options:nil];
         [self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,@"Conectando al periferico"]];
     }
@@ -154,7 +161,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
     // Asks the peripheral to discover the service
     [self.peripheral discoverServices:@[ [CBUUID UUIDWithString:kServiceUUID] ]];
     [self.console setText:[NSString stringWithFormat:@"%@%@\r\n",self.console.text,@"Conectado..."]];
-     NSLog(@"Connection successfull to peripheral: %@ with UUID: %@",peripheral,peripheral.UUID);
+     //NSLog(@"Connection successfull to peripheral: %@ with UUID: %@",peripheral,peripheral.UUID);
 }
 
 -(void) centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral     *)peripheral error:(NSError *)error{
@@ -165,23 +172,25 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
     self.valorRSSI.text=@"0";
     self.valorTemperatura.text=@"0";
     self.valorPresion.text=@"0";
+    self.valorProximidad.text=@"0";
 }
 
 
  - (void)peripheral:(CBPeripheral *)aPeripheral didDiscoverServices:(NSError *)error {
         if (error) {
-            NSLog(@"Error discovering service: %@", [error localizedDescription]);
+            //NSLog(@"Error discovering service: %@", [error localizedDescription]);
               return;
         }
         for (CBService *service in aPeripheral.services)
         {
-            NSLog(@"Service found with UUID: %@", service.UUID);
+            //NSLog(@"Service found with UUID: %@", service.UUID);
             // Discovers the characteristics for a given service
             if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]])
             {
               [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:ledUUID]] forService:service];
               [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:temperatureUUID]] forService:service];
               [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:pressureUUID]] forService:service];
+              [self.peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:proximityUUID]] forService:service];
             }
         }
     }
@@ -192,37 +201,35 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
 {
     if (error)
     {
-        NSLog(@"Error discovering characteristic: %@", [error localizedDescription]);
+        //(@"Error discovering characteristic: %@", [error localizedDescription]);
         //[self cleanup];
         return;
     }
-    if ([service.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
+    if ([service.UUID isEqual:[CBUUID UUIDWithString:kServiceUUID]])
      {
         for (CBCharacteristic *characteristic in service.characteristics)
           {
             if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
             {
-                NSLog(@"Discover characteristics for temperature");
+                //NSLog(@"Discover characteristics for temperature");
                 //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
                 [peripheral readValueForCharacteristic:characteristic];
+            }
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]])
+            {
+                  //NSLog(@"Discover characteristics for pressure");
+                  //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                  [peripheral readValueForCharacteristic:characteristic];
+            }
+            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:proximityUUID]])
+            {
+                  //NSLog(@"Discover characteristics for pressure");
+                  //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
+                  [peripheral readValueForCharacteristic:characteristic];
             }
           }
             
     }
-    if ([service.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]])
-    {
-        for (CBCharacteristic *characteristic in service.characteristics)
-        {
-            if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]])
-            {
-                NSLog(@"Discover characteristics for pressure");
-                //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
-                [peripheral readValueForCharacteristic:characteristic];
-            }
-        }
-        
-    }
-
 }
 
 
@@ -235,7 +242,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
     if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:temperatureUUID]]) {
         [self.peripheral readValueForCharacteristic:characteristic];
         NSData *data = characteristic.value;
-        NSLog(@"UPDATED DATA:%@", data);
+        //NSLog(@"UPDATED DATA:%@", data);
         if(data!=nil)
         {
         const unsigned *tokenBytes = [data bytes];
@@ -272,16 +279,16 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
             d =  (b0 << 24) | (b1 << 16)| (b2 << 8) | (b3);
             
             float member = *(float *)&d;
-            NSLog(@"Temperatura: %f",member);
+            //NSLog(@"Temperatura: %f",member);
 
-         self.valorTemperatura.text=[[NSString alloc] initWithFormat:@"%.2f",member];
+         self.valorTemperatura.text=[[NSString alloc] initWithFormat:@"%.2f ˚C",member];
      }
     }
  //pressure reading
     if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:pressureUUID]]) {
         [self.peripheral readValueForCharacteristic:characteristic];
         NSData *data = characteristic.value;
-        NSLog(@"UPDATED DATA:%@", data);
+        //NSLog(@"UPDATED DATA:%@", data);
         if(data!=nil)
         {
             const unsigned *tokenBytes = [data bytes];
@@ -318,9 +325,50 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
             d =  (b0 << 24) | (b1 << 16)| (b2 << 8) | (b3);
             
             float member = *(float *)&d;
-            NSLog(@"Presion: %f",member);
+            //NSLog(@"Presion: %f",member);
             
-            self.valorPresion.text=[[NSString alloc] initWithFormat:@"%.2f",member];
+            self.valorPresion.text=[[NSString alloc] initWithFormat:@"%.2f (pa)",member];
+        }
+    }
+    //proximity reading
+    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:proximityUUID]]) {
+        [self.peripheral readValueForCharacteristic:characteristic];
+        NSData *data = characteristic.value;
+        //NSLog(@"UPDATED DATA:%@", data);
+        if(data!=nil)
+        {
+            const unsigned *tokenBytes = [data bytes];
+            
+            NSString *hexToken = [NSString stringWithFormat:@"%04x",
+                                  ntohl(tokenBytes[0])];
+            
+            NSString *t1 = [hexToken substringWithRange:NSMakeRange(0,2)];
+            NSString *t2 = [hexToken substringWithRange:NSMakeRange(2,2)];
+            //NSString *t3 = [hexToken substringWithRange:NSMakeRange(4,2)];
+            //NSString *t4 = [hexToken substringWithRange:NSMakeRange(6,2)];
+            
+            unsigned int outVal;
+            NSScanner* scanner = [NSScanner scannerWithString:t1];
+            [scanner scanHexInt:&outVal];
+            unsigned char b0 = outVal;
+            //NSLog(@"Dec t1:%d",b0);
+            scanner = [NSScanner scannerWithString:t2];
+            [scanner scanHexInt:&outVal];
+            unsigned char b1 = outVal;
+            //NSLog(@"Dec t2:%d",b1);
+            //scanner = [NSScanner scannerWithString:t3];
+            [scanner scanHexInt:&outVal];
+            //unsigned char b2 = outVal;
+            //NSLog(@"Dec t3:%d",b2);
+            //scanner = [NSScanner scannerWithString:t4];
+            //[scanner scanHexInt:&outVal];
+            //unsigned char b3 = outVal;
+            
+            int d;
+            d =  (b1 << 8) | (b0);
+            //NSLog(@"Proximidad b0: %d",b0);
+            //NSLog(@"Proximidad b1: %d",b1);
+            self.valorProximidad.text=[[NSString alloc] initWithFormat:@"%d",d];
         }
     }
 
@@ -328,7 +376,7 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
     if (error) {
-        NSLog(@"Error changing notification state: %@", error.localizedDescription);
+        //NSLog(@"Error changing notification state: %@", error.localizedDescription);
     }
     
     // Exits if it's not the transfer characteristic
@@ -338,13 +386,13 @@ static NSString * const pressureUUID =    @"03032002-0303-0303-0303-030303030303
    
     // Notification has started
     if (characteristic.isNotifying) {
-        NSLog(@"Notification began on %@", characteristic);
+        //NSLog(@"Notification began on %@", characteristic);
         [peripheral readValueForCharacteristic:characteristic];
-        NSData *data = characteristic.value;
-        NSLog(@"DATOS LUEGO DE NOTIFICACION:%@", data);
+        //NSData *data = characteristic.value;
+        //NSLog(@"DATOS LUEGO DE NOTIFICACION:%@", data);
     } else { // Notification has stopped
         // so disconnect from the peripheral
-        NSLog(@"Notification stopped on %@.  Disconnecting", characteristic);
+        //NSLog(@"Notification stopped on %@.  Disconnecting", characteristic);
         [self.manager cancelPeripheralConnection:self.peripheral];
     }
 }
