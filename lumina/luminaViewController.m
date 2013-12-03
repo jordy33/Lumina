@@ -7,6 +7,8 @@
 //
 
 #import "luminaViewController.h"
+
+
 static NSString * const kServiceUUID =
 @"03031000-0303-0303-0303-030303030303";
 static NSString * const ledUUID =         @"03032000-0303-0303-0303-030303030303";
@@ -22,6 +24,7 @@ static NSString * const proximityUUID =   @"03032003-0303-0303-0303-030303030303
 @property (weak, nonatomic) IBOutlet UILabel *valorPresion;
 @property (weak, nonatomic) IBOutlet UILabel *valorProximidad;
 @end
+
 
 @implementation luminaViewController
 

@@ -157,7 +157,7 @@
 				LastUpgradeCheck = 0460;
 				ORGANIZATIONNAME = "Jorge Macias";
 			};
-			buildConfigurationList = 00FD11C317C52CB9004BAF66 /* Build configuration list for PBXProject "lumina" */;
+			buildConfigurationList = 00FD11C317C52CB9004BAF66 /* Build configuration list for PBXProject "Lumina" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -317,7 +317,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		00FD11C317C52CB9004BAF66 /* Build configuration list for PBXProject "lumina" */ = {
+		00FD11C317C52CB9004BAF66 /* Build configuration list for PBXProject "Lumina" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00FD11EC17C52CBA004BAF66 /* Debug */,
